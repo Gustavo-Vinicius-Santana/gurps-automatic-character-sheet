@@ -11,6 +11,7 @@ import PenalidadesEncargo from "@/src/ui/components/PenalidadesEncargo"
 import DanoDisplay from "@/src/ui/components/DanoDisplay"
 import ModificadoresPercentuais from "@/src/ui/components/ModificadoresPercentuais"
 import Pericias from "@/src/ui/components/Pericias"
+import VantagensDesvantagens from "../ui/components/VantagensDesvantagens"
 
 // Tipos
 interface AtributoBasicoType {
@@ -62,6 +63,16 @@ interface PericiaType {
   pontos: number // Pontos investidos na perícia
   predefinido: string // String para valores como "medicina-5", "cirurgia-2", etc.
   nhFinal: number // NH final calculado
+}
+
+interface VantagemDesvantagemType {
+  id: string
+  nome: string
+  tipo: 'vantagem' | 'desvantagem' | 'perk' | 'quirk'
+  nivel?: number // Nível da vantagem (opcional)
+  custo: number // Custo positivo ou negativo
+  descricao?: string // Descrição opcional
+  categoria?: string // Categoria para organização
 }
 
 // Tabela de dano
@@ -296,6 +307,13 @@ export default function Home() {
     }
   ])
 
+    const [vantagensDesvantagens, setVantagensDesvantagens] = useState<VantagemDesvantagemType[]>([
+    { id: "1", nome: "Sortudo", tipo: "vantagem", custo: 15, descricao: "+1 à todas as rolagens de sorte" },
+    { id: "2", nome: "Pacifismo", tipo: "desvantagem", custo: -10, descricao: "Não pode atacar primeiro" },
+    { id: "3", nome: "Visão Noturna", tipo: "vantagem", nivel: 5, custo: 5, descricao: "Ver no escuro, 5 níveis" },
+    { id: "4", nome: "Medo de Altura", tipo: "desvantagem", custo: -5, descricao: "Fobia comum" },
+  ])
+
   // ===== CÁLCULOS =====
   // Calcular pontos totais como número
   const pontosTotaisNumero = pontosTotais === "" ? 0 : parseInt(pontosTotais) || 0
@@ -408,14 +426,6 @@ export default function Home() {
     return pericia.pontos
   }
 
-  // Atualizar NH das perícias quando atributos mudam
-  useEffect(() => {
-    setPericias(prev => prev.map(pericia => ({
-      ...pericia,
-      nhFinal: calcularNHPericia(pericia)
-    })))
-  }, [atributos])
-
   // Calcular pontos gastos incluindo modificadores e perícias
   useEffect(() => {
     let total = 0
@@ -430,13 +440,11 @@ export default function Home() {
     })
     
     // Custo dos atributos secundários
-    // DB usa modificador de MOVE
     Object.entries(valoresSecundarios).forEach(([key, sec]) => {
       const diferenca = sec.valor - sec.base
       if (diferenca !== 0) {
         let custoPorNivel = sec.custo
         
-        // Aplicar modificador de movimento no DB
         if (key === "DB") {
           custoPorNivel = calcularCustoComModificador(sec.custo, "MOVE")
         }
@@ -445,13 +453,18 @@ export default function Home() {
       }
     })
     
-    // Custo das perícias (os pontos investidos)
+    // Custo das perícias
     pericias.forEach(pericia => {
       total += pericia.pontos
     })
     
+    // Custo das vantagens e desvantagens
+    vantagensDesvantagens.forEach(vd => {
+      total += vd.custo
+    })
+    
     setPontosGastos(total)
-  }, [atributos, valoresSecundarios, modificadores, pericias])
+  }, [atributos, valoresSecundarios, modificadores, pericias, vantagensDesvantagens])
 
   // Obter dano baseado na ST
   const dano = DAMAGE_TABLE[atributos.ST.valor] ?? { thrust: "-", swing: "-" }
@@ -575,6 +588,33 @@ export default function Home() {
       return pericia
     }))
   }
+
+const handleAdicionarVD = (novaVD: VantagemDesvantagemType) => {
+  setVantagensDesvantagens([...vantagensDesvantagens, novaVD])
+}
+
+const handleRemoverVD = (id: string) => {
+  setVantagensDesvantagens(vantagensDesvantagens.filter(vd => vd.id !== id))
+}
+
+const handleVDChange = (id: string, campo: keyof VantagemDesvantagemType, valor: any) => {
+  setVantagensDesvantagens(prev => prev.map(vd => {
+    if (vd.id === id) {
+      // Se o tipo mudou de desvantagem para vantagem ou vice-versa, ajustar o custo
+      if (campo === 'tipo' && valor !== vd.tipo) {
+        const novoCusto = valor === 'desvantagem' ? -Math.abs(vd.custo) : Math.abs(vd.custo)
+        return { ...vd, tipo: valor, custo: novoCusto }
+      }
+      // Se mudou o custo, garantir o sinal correto
+      if (campo === 'custo') {
+        const custoAjustado = vd.tipo === 'desvantagem' ? -Math.abs(valor) : Math.abs(valor)
+        return { ...vd, [campo]: custoAjustado }
+      }
+      return { ...vd, [campo]: valor }
+    }
+    return vd
+  }))
+}
 
 const ajustarPontosPericia = (id: string, incremento: number) => {
   const pericia = pericias.find(p => p.id === id)
@@ -855,15 +895,13 @@ const ajustarPontosPericia = (id: string, incremento: number) => {
 
     {/* Coluna direita - Vantagens e Desvantagens */}
     <div>
-      <div className="border border-gray-700 rounded p-3">
-        <h2 className="text-sm font-medium mb-3 border-b border-gray-800 pb-2">
-          Vantagens e Desvantagens
-        </h2>
-        <div className="text-center py-8 text-gray-500">
-          <p>Seção de Vantagens e Desvantagens</p>
-          <p className="text-xs mt-2">(Em desenvolvimento)</p>
-        </div>
-      </div>
+      <VantagensDesvantagens
+        vantagensDesvantagens={vantagensDesvantagens}
+        pontosDisponiveis={pontosTotaisNumero - pontosGastos}
+        onAdicionar={handleAdicionarVD}
+        onRemover={handleRemoverVD}
+        onChange={handleVDChange}
+      />
     </div>
   </div>
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react" // Adicione useEffect
 
 interface AtributoBasicoType {
   nome: string
@@ -22,7 +22,7 @@ interface PericiasProps {
   pericias: PericiaType[]
   atributos: Record<string, AtributoBasicoType>
   pontosDisponiveis: number
-  onAdicionarPericia: () => void
+  onAdicionarPericia: (periciaInicial?: Partial<PericiaType>) => void // Modifique esta linha
   onRemoverPericia: (id: string) => void
   onPericiaChange: (id: string, campo: keyof PericiaType, valor: any) => void
   onAjustarPontosPericia: (id: string, incremento: number) => void
@@ -211,17 +211,27 @@ export default function Pericias({
 
   // Exemplos de perícias pré-definidas
   const exemplosPericias = [
-    { nome: "Esquiva", atributo: "DX", dificuldade: "facil", predefinido: "" },
-    { nome: "Ataque com Espada", atributo: "DX", dificuldade: "medio", predefinido: "" },
-    { nome: "Arquearia", atributo: "DX", dificuldade: "dificil", predefinido: "" },
-    { nome: "Atletismo", atributo: "HT", dificuldade: "medio", predefinido: "" },
+    { nome: "Espada curta", atributo: "DX", dificuldade: "medio", predefinido: "DX - 4" },
+    { nome: "Espada larga", atributo: "DX", dificuldade: "medio", predefinido: "DX - 4" },
+    { nome: "Arco", atributo: "DX", dificuldade: "medio", predefinido: "DX - 4" },
+    { nome: "Escudo", atributo: "DX", dificuldade: "facil", predefinido: "DX - 4" },
     { nome: "Diplomacia", atributo: "IQ", dificuldade: "dificil", predefinido: "" },
-    { nome: "Percepção", atributo: "IQ", dificuldade: "facil", predefinido: "" },
-    { nome: "Vontade", atributo: "IQ", dificuldade: "medio", predefinido: "" },
+    { nome: "Besta", atributo: "DX", dificuldade: "facil", predefinido: "DX - 4" },
   ]
 
   const adicionarExemplo = (exemplo: typeof exemplosPericias[0]) => {
-    onAdicionarPericia()
+    // Cria um objeto de perícia inicial com os dados do exemplo
+    const periciaInicial: Partial<PericiaType> = {
+      nome: exemplo.nome,
+      atributo: exemplo.atributo as 'ST' | 'DX' | 'IQ' | 'HT',
+      dificuldade: exemplo.dificuldade as 'facil' | 'medio' | 'dificil' | 'muito-dificil',
+      predefinido: exemplo.predefinido,
+      pontos: 0,
+      nhFinal: -9999
+    }
+    
+    // Chama a função do pai passando os dados iniciais
+    onAdicionarPericia(periciaInicial)
   }
 
   // Se não houver perícias, mostrar mensagem
@@ -238,7 +248,7 @@ export default function Pericias({
               {mostrarTabela ? '▲' : '▼'} Tabela
             </button>
             <button
-              onClick={onAdicionarPericia}
+              onClick={() => onAdicionarPericia()}
               className="text-xs px-2 py-1 border border-gray-700 rounded hover:bg-gray-800"
             >
               + Perícia
@@ -265,7 +275,7 @@ export default function Pericias({
             {mostrarTabela ? '▲' : '▼'} Tabela
           </button>
           <button
-            onClick={onAdicionarPericia}
+            onClick={() => onAdicionarPericia()}
             className="text-xs px-2 py-1 border border-gray-700 rounded hover:bg-gray-800"
           >
             + Perícia

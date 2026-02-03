@@ -9,6 +9,7 @@ import CargaAtual from "@/src/ui/components/CargaAtual"
 import TabelaCargas from "@/src/ui/components/TabelaCargas"
 import PenalidadesEncargo from "@/src/ui/components/PenalidadesEncargo"
 import DanoDisplay from "@/src/ui/components/DanoDisplay"
+import ModificadoresPercentuais from "@/src/ui/components/ModificadoresPercentuais"
 
 // Tipos
 interface AtributoBasicoType {
@@ -43,6 +44,13 @@ interface ValoresCombateType {
   VB: number
   DB: number
   pesoNumero: number
+}
+
+interface ModificadorType {
+  id: string
+  nome: string
+  valor: number // percentual (-80% a +300%)
+  aplicavel: boolean
 }
 
 // Tabela de dano
@@ -90,6 +98,13 @@ export default function Home() {
     peso: ""
   })
 
+  // Modificadores percentuais
+  const [modificadores, setModificadores] = useState<ModificadorType[]>([
+    { id: "ST", nome: "Força (ST)", valor: 0, aplicavel: true },
+    { id: "HT", nome: "Vitalidade (HT)", valor: 0, aplicavel: true },
+    { id: "MOVE", nome: "Movimento (DB)", valor: 0, aplicavel: true }
+  ])
+
   // ===== CÁLCULOS =====
   // Calcular pontos totais como número
   const pontosTotaisNumero = pontosTotais === "" ? 0 : parseInt(pontosTotais) || 0
@@ -136,6 +151,18 @@ export default function Home() {
     }))
   }, [atributos])
 
+  // Calcular custo com modificadores percentuais
+  const calcularCustoComModificador = (custoBase: number, atributoId: string): number => {
+    const modificador = modificadores.find(m => m.id === atributoId)
+    if (!modificador || !modificador.aplicavel) return custoBase
+    
+    const percentual = modificador.valor / 100
+    const custoModificado = custoBase * (1 + percentual)
+    
+    // Arredondar para cima (regra do GURPS)
+    return Math.ceil(custoModificado)
+  }
+
   // Calcular valores de combate
   const calcularValoresCombate = (): ValoresCombateType => {
     const CB = (atributos.ST.valor * atributos.ST.valor) / 5
@@ -171,23 +198,37 @@ export default function Home() {
 
   const valoresCombate = calcularValoresCombate()
 
-  // Calcular pontos gastos
+  // Calcular pontos gastos incluindo modificadores
   useEffect(() => {
     let total = 0
     
-    // Custo dos atributos básicos
-    Object.values(atributos).forEach(atributo => {
-      total += (atributo.valor - 10) * atributo.custo
+    // Custo dos atributos básicos (com modificadores)
+    Object.entries(atributos).forEach(([key, atributo]) => {
+      const diferenca = atributo.valor - 10
+      if (diferenca !== 0) {
+        const custoPorNivel = calcularCustoComModificador(atributo.custo, key)
+        total += diferenca * custoPorNivel
+      }
     })
     
     // Custo dos atributos secundários
-    Object.values(valoresSecundarios).forEach(sec => {
+    // DB usa modificador de MOVE
+    Object.entries(valoresSecundarios).forEach(([key, sec]) => {
       const diferenca = sec.valor - sec.base
-      total += diferenca * sec.custo
+      if (diferenca !== 0) {
+        let custoPorNivel = sec.custo
+        
+        // Aplicar modificador de movimento no DB
+        if (key === "DB") {
+          custoPorNivel = calcularCustoComModificador(sec.custo, "MOVE")
+        }
+        
+        total += diferenca * custoPorNivel
+      }
     })
     
     setPontosGastos(total)
-  }, [atributos, valoresSecundarios])
+  }, [atributos, valoresSecundarios, modificadores])
 
   // Obter dano baseado na ST
   const dano = DAMAGE_TABLE[atributos.ST.valor] ?? { thrust: "-", swing: "-" }
@@ -196,7 +237,11 @@ export default function Home() {
   const ajustarAtributo = (key: string, incremento: number) => {
     const atributo = atributos[key]
     const novoValor = atributo.valor + incremento
-    const custoMudança = incremento * atributo.custo
+    const diferenca = novoValor - 10
+    
+    // Calcular custo da mudança considerando modificadores
+    const custoPorNivel = calcularCustoComModificador(atributo.custo, key)
+    const custoMudança = incremento * custoPorNivel
     
     // Verificar pontos disponíveis
     if (custoMudança > 0 && custoMudança > (pontosTotaisNumero - pontosGastos)) {
@@ -221,7 +266,16 @@ export default function Home() {
     }
     
     const novoValor = atributo.valor + incrementoEfetivo
-    const custoMudança = incremento * atributo.custo
+    const diferencaAtual = atributo.valor - atributo.base
+    const novaDiferenca = novoValor - atributo.base
+    
+    // Calcular custo da mudança considerando modificadores
+    let custoPorNivel = atributo.custo
+    if (key === "DB") {
+      custoPorNivel = calcularCustoComModificador(atributo.custo, "MOVE")
+    }
+    
+    const custoMudança = (novaDiferenca - diferencaAtual) * custoPorNivel
     
     // Verificar pontos disponíveis
     if (custoMudança > 0 && custoMudança > (pontosTotaisNumero - pontosGastos)) {
@@ -248,6 +302,22 @@ export default function Home() {
     if (value === "" || /^\d*$/.test(value)) {
       setPontosTotais(value)
     }
+  }
+
+  const handleModificadorChange = (id: string, valor: number) => {
+    setModificadores(prev => 
+      prev.map(mod => 
+        mod.id === id ? { ...mod, valor } : mod
+      )
+    )
+  }
+
+  const handleToggleModificador = (id: string) => {
+    setModificadores(prev => 
+      prev.map(mod => 
+        mod.id === id ? { ...mod, aplicavel: !mod.aplicavel } : mod
+      )
+    )
   }
 
   return (
@@ -281,9 +351,10 @@ export default function Home() {
                   id={key}
                   nome={attr.nome}
                   valor={attr.valor}
-                  custo={attr.custo}
+                  custo={calcularCustoComModificador(attr.custo, key)}
                   pontosDisponiveis={pontosTotaisNumero - pontosGastos}
                   onAjustar={ajustarAtributo}
+                  modificador={modificadores.find(m => m.id === key)?.valor || 0}
                 />
               ))}
             </div>
@@ -302,13 +373,20 @@ export default function Home() {
                   nome={sec.nome}
                   valor={sec.valor}
                   base={sec.base}
-                  custo={sec.custo}
+                  custo={key === "DB" ? calcularCustoComModificador(sec.custo, "MOVE") : sec.custo}
                   pontosDisponiveis={pontosTotaisNumero - pontosGastos}
                   onAjustar={ajustarAtributoSecundario}
                 />
               ))}
             </div>
           </div>
+
+          {/* Modificadores Percentuais */}
+          <ModificadoresPercentuais
+            modificadores={modificadores}
+            onModificadorChange={handleModificadorChange}
+            onToggleModificador={handleToggleModificador}
+          />
         </div>
 
         {/* Coluna direita - Resultados */}

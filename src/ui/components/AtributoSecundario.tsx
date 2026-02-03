@@ -6,17 +6,27 @@ interface AtributoSecundarioProps {
   custo: number
   pontosDisponiveis: number
   onAjustar: (key: string, incremento: number) => void
+  modificador?: number
 }
 
 export default function AtributoSecundario({ 
-  id, nome, valor, base, custo, pontosDisponiveis, onAjustar 
+  id, nome, valor, base, custo, pontosDisponiveis, onAjustar, modificador = 0
 }: AtributoSecundarioProps) {
   const diferenca = valor - base
   const pontos = diferenca * custo
   
   return (
     <div className="grid grid-cols-12 gap-2 py-2 border-b border-gray-800 items-center">
-      <div className="col-span-5 text-sm">{nome}</div>
+      <div className="col-span-5 text-sm">
+        {nome}
+        {id === "DB" && modificador !== 0 && (
+          <div className="text-xs">
+            <span className={modificador > 0 ? 'text-green-400' : 'text-red-400'}>
+              Movimento: {modificador > 0 ? `+${modificador}` : modificador}%
+            </span>
+          </div>
+        )}
+      </div>
       <div className="col-span-3 flex items-center justify-center gap-1">
         <button
           onClick={() => onAjustar(id, -1)}
@@ -51,6 +61,11 @@ export default function AtributoSecundario({
             <span className={diferenca > 0 ? 'text-green-400' : 'text-red-400'}>
               {diferenca > 0 ? ` +${id === "VB" ? diferenca.toFixed(2) : diferenca}` : ` ${id === "VB" ? diferenca.toFixed(2) : diferenca}`}
             </span>
+          )}
+          {id === "DB" && modificador !== 0 && (
+            <div className={modificador > 0 ? 'text-green-400' : 'text-red-400'}>
+              {modificador > 0 ? `+${modificador}%` : `${modificador}%`}
+            </div>
           )}
         </div>
       </div>

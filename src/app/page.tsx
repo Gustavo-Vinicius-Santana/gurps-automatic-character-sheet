@@ -12,6 +12,7 @@ import DanoDisplay from "@/src/ui/components/DanoDisplay"
 import ModificadoresPercentuais from "@/src/ui/components/ModificadoresPercentuais"
 import Pericias from "@/src/ui/components/Pericias"
 import VantagensDesvantagens from "../ui/components/VantagensDesvantagens"
+import Equipamentos from "../ui/components/Equipamentos"
 
 // Tipos
 interface AtributoBasicoType {
@@ -74,6 +75,46 @@ interface VantagemDesvantagemType {
   descricao?: string // Descrição opcional
   categoria?: string // Categoria para organização
 }
+
+interface EquipamentoBaseType {
+  id: string
+  nome: string
+  tipo: 'arma-corpo' | 'arma-distancia' | 'armadura' | 'outro'
+  custo: number // Em moedas, não em pontos
+  peso: number // Em kg
+}
+
+interface ArmaCorpoType extends EquipamentoBaseType {
+  tipo: 'arma-corpo'
+  dano: string // Ex: "2d corte"
+  alcance: string // Ex: "1"
+  aparar: string // Ex: "0"
+  stMinima: number // Força mínima
+}
+
+interface ArmaDistanciaType extends EquipamentoBaseType {
+  tipo: 'arma-distancia'
+  dano: string // Ex: "1d+2 perf"
+  precisao: number // Ex: 4
+  alcance: string // Ex: "100/150"
+  cdt: string // Ex: "1"
+  tiros: string // Ex: "1(3)"
+  stMinima: number // Força mínima
+  magnet: string // Ex: "2"
+}
+
+interface ArmaduraType extends EquipamentoBaseType {
+  tipo: 'armadura'
+  local: string // Ex: "Torso"
+  rd: number // Resistência a dano
+}
+
+interface OutroItemType extends EquipamentoBaseType {
+  tipo: 'outro'
+  descricao?: string
+}
+
+type EquipamentoType = ArmaCorpoType | ArmaDistanciaType | ArmaduraType | OutroItemType
 
 // Tabela de dano
 const DAMAGE_TABLE: Record<number, { thrust: string; swing: string }> = {
@@ -262,7 +303,7 @@ const obterProximoNivelValido = (pontosAtuais: number, dificuldade: string, incr
 
 export default function Home() {
   // ===== ESTADO =====
-  const [pontosTotais, setPontosTotais] = useState<string>("100")
+  const [pontosTotais, setPontosTotais] = useState<string>("")
   const [pontosGastos, setPontosGastos] = useState(0)
   
   // Atributos básicos
@@ -288,31 +329,14 @@ export default function Home() {
   })
 
   // Modificadores percentuais
-  const [modificadores, setModificadores] = useState<ModificadorType[]>([
-    { id: "ST", nome: "Força (ST)", valor: 0, aplicavel: true },
-    { id: "HT", nome: "Vitalidade (HT)", valor: 0, aplicavel: true },
-    { id: "MOVE", nome: "Movimento (DB)", valor: 0, aplicavel: true }
-  ])
+  const [modificadores, setModificadores] = useState<ModificadorType[]>([])
 
   // Perícias
-  const [pericias, setPericias] = useState<PericiaType[]>([
-    {
-      id: "1",
-      nome: "Esquiva",
-      atributo: "DX",
-      dificuldade: "facil",
-      pontos: 0,
-      predefinido: "",
-      nhFinal: 10
-    }
-  ])
+  const [pericias, setPericias] = useState<PericiaType[]>([])
 
-    const [vantagensDesvantagens, setVantagensDesvantagens] = useState<VantagemDesvantagemType[]>([
-    { id: "1", nome: "Sortudo", tipo: "vantagem", custo: 15, descricao: "+1 à todas as rolagens de sorte" },
-    { id: "2", nome: "Pacifismo", tipo: "desvantagem", custo: -10, descricao: "Não pode atacar primeiro" },
-    { id: "3", nome: "Visão Noturna", tipo: "vantagem", nivel: 5, custo: 5, descricao: "Ver no escuro, 5 níveis" },
-    { id: "4", nome: "Medo de Altura", tipo: "desvantagem", custo: -5, descricao: "Fobia comum" },
-  ])
+    const [vantagensDesvantagens, setVantagensDesvantagens] = useState<VantagemDesvantagemType[]>([])
+
+  const [equipamentos, setEquipamentos] = useState<EquipamentoType[]>([])
 
   // ===== CÁLCULOS =====
   // Calcular pontos totais como número
@@ -616,6 +640,80 @@ const handleVDChange = (id: string, campo: keyof VantagemDesvantagemType, valor:
   }))
 }
 
+const handleAdicionarEquipamento = (tipo: 'arma-corpo' | 'arma-distancia' | 'armadura' | 'outro') => {
+  let novoEquipamento: EquipamentoType
+  
+  const baseData = {
+    id: Date.now().toString(),
+    nome: "Novo Equipamento",
+    custo: 0,
+    peso: 0
+  }
+  
+  switch (tipo) {
+    case 'arma-corpo':
+      novoEquipamento = {
+        ...baseData,
+        tipo: 'arma-corpo',
+        nome: "Nova Arma",
+        dano: "-",
+        alcance: "-",
+        aparar: "-",
+        stMinima: 0
+      }
+      break
+    case 'arma-distancia':
+      novoEquipamento = {
+        ...baseData,
+        tipo: 'arma-distancia',
+        nome: "Nova Arma à Distância",
+        dano: "-",
+        precisao: 0,
+        alcance: "-",
+        cdt: "-",
+        tiros: "-",
+        stMinima: 0,
+        magnet: "-"
+      }
+      break
+    case 'armadura':
+      novoEquipamento = {
+        ...baseData,
+        tipo: 'armadura',
+        nome: "Nova Armadura",
+        local: "-",
+        rd: 0
+      }
+      break
+    case 'outro':
+      novoEquipamento = {
+        ...baseData,
+        tipo: 'outro',
+        nome: "Novo Item",
+        descricao: ""
+      }
+      break
+  }
+  
+  setEquipamentos([...equipamentos, novoEquipamento])
+}
+
+const handleRemoverEquipamento = (id: string) => {
+  setEquipamentos(equipamentos.filter(e => e.id !== id))
+}
+
+const handleEquipamentoChange = (id: string, campo: string, valor: any) => {
+  setEquipamentos(prev => prev.map(e => {
+    if (e.id === id) {
+      // Type assertion para evitar erros do TypeScript
+      const equipamento = { ...e } as any
+      equipamento[campo] = valor
+      return equipamento as EquipamentoType
+    }
+    return e
+  }))
+}
+
 const ajustarPontosPericia = (id: string, incremento: number) => {
   const pericia = pericias.find(p => p.id === id)
   if (!pericia) return
@@ -776,105 +874,13 @@ const ajustarPontosPericia = (id: string, incremento: number) => {
       </div>
 
       {/* Equipamentos (ocupa as 2 sub-colunas abaixo) */}
-      <div className="lg:col-span-2 border border-gray-700 rounded p-3">
-        <div className="flex justify-between items-center mb-3 border-b border-gray-800 pb-2">
-          <h2 className="text-sm font-medium">Equipamentos</h2>
-          <div className="flex gap-2">
-            <button className="text-xs px-2 py-1 border border-gray-700 rounded hover:bg-gray-800">
-              + Arma
-            </button>
-            <button className="text-xs px-2 py-1 border border-gray-700 rounded hover:bg-gray-800">
-              + Armadura
-            </button>
-            <button className="text-xs px-2 py-1 border border-gray-700 rounded hover:bg-gray-800">
-              + Item
-            </button>
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* Armas */}
-          <div className="border border-gray-800 rounded p-3">
-            <h3 className="text-xs font-medium mb-2 text-red-400 border-b border-gray-800 pb-1">
-              Armas
-            </h3>
-            <div className="space-y-2">
-              <div className="p-2 border border-gray-800 rounded">
-                <div className="flex justify-between items-start">
-                  <div className="text-xs font-medium">Espada Longa</div>
-                  <div className="text-xs text-gray-500">3 kg</div>
-                </div>
-                <div className="text-xs text-gray-500 mt-1">Dano: 2d corte</div>
-                <div className="text-xs text-gray-500">Reach: 1</div>
-              </div>
-              <div className="text-center py-4 text-gray-500 text-xs">
-                Nenhuma arma adicionada
-              </div>
-            </div>
-          </div>
-          
-          {/* Armaduras */}
-          <div className="border border-gray-800 rounded p-3">
-            <h3 className="text-xs font-medium mb-2 text-blue-400 border-b border-gray-800 pb-1">
-              Armaduras
-            </h3>
-            <div className="space-y-2">
-              <div className="p-2 border border-gray-800 rounded">
-                <div className="flex justify-between items-start">
-                  <div className="text-xs font-medium">Armadura de Couro</div>
-                  <div className="text-xs text-gray-500">10 kg</div>
-                </div>
-                <div className="text-xs text-gray-500 mt-1">DR: 2</div>
-                <div className="text-xs text-gray-500">Cobertura: Torso</div>
-              </div>
-              <div className="text-center py-4 text-gray-500 text-xs">
-                Nenhuma armadura adicionada
-              </div>
-            </div>
-          </div>
-          
-          {/* Outros */}
-          <div className="border border-gray-800 rounded p-3">
-            <h3 className="text-xs font-medium mb-2 text-green-400 border-b border-gray-800 pb-1">
-              Outros
-            </h3>
-            <div className="space-y-2">
-              <div className="p-2 border border-gray-800 rounded">
-                <div className="flex justify-between items-center">
-                  <div className="text-xs">Corda (10m)</div>
-                  <div className="text-xs text-gray-500">1.5 kg</div>
-                </div>
-              </div>
-              <div className="p-2 border border-gray-800 rounded">
-                <div className="flex justify-between items-center">
-                  <div className="text-xs">Tocha</div>
-                  <div className="text-xs text-gray-500">1 kg</div>
-                </div>
-              </div>
-              <div className="text-center py-2 text-gray-500 text-xs">
-                +2 itens
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        {/* Resumo de peso */}
-        <div className="mt-4 pt-3 border-t border-gray-800">
-          <div className="grid grid-cols-3 gap-3 text-xs">
-            <div className="text-center">
-              <div className="text-gray-500">Peso Total</div>
-              <div className="font-medium">14.5 kg</div>
-            </div>
-            <div className="text-center">
-              <div className="text-gray-500">Armas</div>
-              <div className="font-medium">3 kg</div>
-            </div>
-            <div className="text-center">
-              <div className="text-gray-500">Armaduras</div>
-              <div className="font-medium">10 kg</div>
-            </div>
-          </div>
-        </div>
+      <div className="lg:col-span-2">
+        <Equipamentos
+          equipamentos={equipamentos}
+          onAdicionar={handleAdicionarEquipamento}
+          onRemover={handleRemoverEquipamento}
+          onChange={handleEquipamentoChange}
+        />
       </div>
     </div>
   </div>

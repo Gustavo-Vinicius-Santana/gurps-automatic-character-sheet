@@ -329,7 +329,11 @@ export default function Home() {
   })
 
   // Modificadores percentuais
-  const [modificadores, setModificadores] = useState<ModificadorType[]>([])
+  const [modificadores, setModificadores] = useState<ModificadorType[]>([
+    { id: "ST", nome: "Força (ST)", valor: 0, aplicavel: true },
+    { id: "HT", nome: "Vitalidade (HT)", valor: 0, aplicavel: true },
+    { id: "MOVE", nome: "Movimento (DB)", valor: 0, aplicavel: true }
+  ])
 
   // Perícias
   const [pericias, setPericias] = useState<PericiaType[]>([])
@@ -580,16 +584,22 @@ export default function Home() {
     )
   }
 
-  const handleAdicionarPericia = () => {
+  const handleAdicionarPericia = (periciaInicial?: Partial<PericiaType>) => {
     const novaPericia: PericiaType = {
       id: Date.now().toString(),
-      nome: "Nova Perícia",
-      atributo: "DX",
-      dificuldade: "medio",
-      pontos: 0,
-      predefinido: "",
-      nhFinal: atributos.DX.valor
+      nome: periciaInicial?.nome || "Nova Perícia",
+      atributo: periciaInicial?.atributo || "DX",
+      dificuldade: periciaInicial?.dificuldade || "medio",
+      pontos: periciaInicial?.pontos || 0,
+      predefinido: periciaInicial?.predefinido || "",
+      nhFinal: periciaInicial?.nhFinal || -9999
     }
+    
+    // Se a perícia inicial tem NH -9999, calcular o NH com base no atributo
+    if (novaPericia.nhFinal === -9999) {
+      novaPericia.nhFinal = calcularNHPericia(novaPericia)
+    }
+    
     setPericias([...pericias, novaPericia])
   }
 

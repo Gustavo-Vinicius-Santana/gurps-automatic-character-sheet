@@ -1,36 +1,35 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# GURPS Aautomatic Character Sheet
 
-## Getting Started
+Um sistema completo de ficha de personagem para GURPS (Generic Universal RolePlaying System) com cálculo automático em tempo real. Interface web moderna para criação e gerenciamento de personagens de RPG.
 
-First, run the development server:
+## 🚀 Características Principais
 
+- **Atributos Básicos**: ST, DX, IQ, HT com cálculo automático de custos
+- **Características Derivadas**: PV, PF, Vontade, Percepção, VB, DB
+- **Sistema de Combate**: Esquiva, DX em combate, carga e penalidades
+- **Perícias**: Sistema completo com 4 níveis de dificuldade
+- **Vantagens/Desvantagens**: 4 categorias com custo automático
+- **Equipamentos**: Armas, armaduras e itens com cálculo de peso/custo
+- **Interface Responsiva**: Funciona em desktop e mobile
+- **Cálculos em Tempo Real**: Tudo atualiza automaticamente
+
+## 🛠️ Tecnologias
+
+- React 18
+- TypeScript
+- Tailwind CSS
+
+## 📦 Instalação e Execução
 ```bash
+# Clone o repositório
+git clone <repo-url>
+cd gurps-character-sheet
+
+# Instale as dependências
+npm install
+
+# Execute em modo de desenvolvimento
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
+Acesse: http://localhost:3000
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
